@@ -1,4 +1,5 @@
 import cv2
+import datetime
 
 cap = cv2.VideoCapture(0) #can either provide path to file name or device index which can be 0 or -1
 print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -18,9 +19,11 @@ while(cap.isOpened()): #checkin if the video can be accessed
     out.write(frame)#write the file 
 
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+    datetime_text= str(datetime.datetime.now())
     font = cv2.FONT_HERSHEY_SIMPLEX
-    text = 'Width:' + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + ' ' + 'Height:' + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    cv2.putText(gray,text,(10,50),font,1,(0,255,255),1,cv2.LINE_AA)
+    frame_size_text = 'Width:' + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + ' ' + 'Height:' + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    gray = cv2.putText(gray,frame_size_text,(10,50),font,1,(0,255,255),1,cv2.LINE_AA)
+    gray = cv2.putText(gray,datetime_text,(10,75),font,1,(0,255,255),1,cv2.LINE_AA)
     cv2.imshow('frame',gray)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
