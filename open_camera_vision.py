@@ -4,6 +4,10 @@ cap = cv2.VideoCapture(0) #can either provide path to file name or device index 
 
 while(cap.isOpened()): #checkin if the video can be accessed
     ret, frame = cap.read()
+
+    print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    print(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
     cv2.imshow('frame',gray)
     
