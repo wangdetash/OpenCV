@@ -4,7 +4,7 @@ cap = cv2.VideoCapture(0) #can either provide path to file name or device index 
 print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 print(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-cap.set(3,640)
+cap.set(3,640) #if  invalid camera resolution is fed, the values wont change but do not drop  any error.
 cap.set(4,480)
 
 print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -18,6 +18,9 @@ while(cap.isOpened()): #checkin if the video can be accessed
     out.write(frame)#write the file 
 
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text = 'Width:' + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + ' ' + 'Height:' + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cv2.putText(gray,text,(10,50),font,1,(0,255,255),1,cv2.LINE_AA)
     cv2.imshow('frame',gray)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
