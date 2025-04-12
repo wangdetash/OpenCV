@@ -20,6 +20,9 @@ print(events)
 while(cap.isOpened()): #checkin if the video can be accessed
     ret, frame = cap.read()
 
+    # Save the frame as a JPEG image
+    cv2.imwrite('captured_image.jpg', frame)
+
     out.write(frame)#write the file 
 
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
