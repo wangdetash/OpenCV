@@ -13,6 +13,10 @@ print(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out =  cv2.VideoWriter('output.avi',fourcc,20.0,(640,480)) #fourcc code is a four byte code which is used to specify the video codac. 20fps (640*480)  capture size
+
+events =  [i for i in dir(cv2) if 'EVENT' in i]
+print(events) 
+
 while(cap.isOpened()): #checkin if the video can be accessed
     ret, frame = cap.read()
 
