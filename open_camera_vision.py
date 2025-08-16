@@ -17,13 +17,16 @@ out =  cv2.VideoWriter('output.avi',fourcc,20.0,(640,480)) #fourcc code is a fou
 events =  [i for i in dir(cv2) if 'EVENT' in i]
 print(events) 
 
-while(cap.isOpened()): #checkin if the video can be accessed
+while cap.isOpened():  # checking if the video can be accessed
     ret, frame = cap.read()
+    if not ret:
+        print("Failed to grab frame")
+        break
 
     # Save the frame as a JPEG image
     cv2.imwrite('captured_image.jpg', frame)
 
-    out.write(frame)#write the file 
+    out.write(frame)  # write the file
 
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
     datetime_text= str(datetime.datetime.now())
