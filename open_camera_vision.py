@@ -27,6 +27,7 @@ print(events)
 while cap.isOpened():  # checkin if the video can be accessed
     ret, frame = cap.read()
     if not ret:
+        print("Failed to grab frame")
         break
 
     # Convert the frame to grayscale for face detection
