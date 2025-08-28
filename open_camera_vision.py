@@ -1,10 +1,18 @@
 import cv2
 import datetime
+import numpy as np
+import time
+from openvino.runtime import Core
 
-# Load the pre-trained Haar cascade for face detection
-face_cascade = cv2.CascadeClassifier(
-    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-)
+# Load the OpenVINO face detection model and compile for Intel NPU
+core = Core()
+# Replace the path below with the location of your OpenVINO IR (.xml) model
+model = core.read_model("face-detection-adas-0001.xml")
+compiled_model = core.compile_model(model, device_name="NPU")
+input_layer = compiled_model.input(0)
+output_layer = compiled_model.output(0)
+# Get the expected input resolution for preprocessing
+_, _, h, w = input_layer.shape
 
 cap = cv2.VideoCapture(0)  # can either provide path to file name or device index which can be 0 or -1
 print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -30,13 +38,25 @@ while cap.isOpened():  # checkin if the video can be accessed
         print("Failed to grab frame")
         break
 
-    # Convert the frame to grayscale for face detection
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+    # Preprocess frame for the OpenVINO model
+    resized = cv2.resize(frame, (w, h))
+    input_image = resized.transpose((2, 0, 1))[np.newaxis, :]
+
+    # Run inference on the Intel NPU and report latency
+    start_time = time.perf_counter()
+    detections = compiled_model([input_image])[output_layer]
+    inference_ms = (time.perf_counter() - start_time) * 1000
+    print(f"Inference time: {inference_ms:.2f} ms")
 
     # Draw a blue square around each detected face
-    for (x, y, w, h) in faces:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+    for detection in detections[0][0]:
+        confidence = detection[2]
+        if confidence > 0.5:
+            x_min = int(detection[3] * frame.shape[1])
+            y_min = int(detection[4] * frame.shape[0])
+            x_max = int(detection[5] * frame.shape[1])
+            y_max = int(detection[6] * frame.shape[0])
+            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (255, 0, 0), 2)
 
     # Save the frame as a JPEG image
     cv2.imwrite("captured_image.jpg", frame)
