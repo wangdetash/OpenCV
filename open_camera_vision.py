@@ -1,5 +1,6 @@
 import cv2
 import datetime
+import time
 
 # Load the pre-trained Haar cascade for face detection
 face_cascade = cv2.CascadeClassifier(
@@ -32,7 +33,11 @@ while cap.isOpened():  # checkin if the video can be accessed
 
     # Convert the frame to grayscale for face detection
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    start_time = time.time()
     faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+    end_time = time.time()
+    inference_time_ms = (end_time - start_time) * 1000
+    print(f"Inference time: {inference_time_ms:.2f} ms")
 
     # Draw a blue square around each detected face
     for (x, y, w, h) in faces:
