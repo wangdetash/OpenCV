@@ -2,15 +2,49 @@ import cv2
 import datetime
 import numpy as np
 import time
+import sys
+import argparse
 from openvino.runtime import Core
 
-# Load the OpenVINO face detection model and compile for Intel NPU
-core = Core()
-# Replace the path below with the location of your OpenVINO IR (.xml) model
-model = core.read_model("face-detection-adas-0001.xml")
-compiled_model = core.compile_model(model, device_name="NPU")
-input_layer = compiled_model.input(0)
-output_layer = compiled_model.output(0)
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Face detection with OpenVINO')
+    parser.add_argument('--device', type=str, choices=['CPU', 'NPU'], default='NPU',
+                       help='Device to run inference on: CPU or NPU (default: NPU)')
+    return parser.parse_args()
+
+def setup_model(device_name):
+    core = Core()
+    
+    # Select model precision based on device
+    if device_name == "NPU":
+        model_path = "./intel/face-detection-adas-0001/FP16-INT8/face-detection-adas-0001.xml"
+        device_config = {
+            "NPU_DMA_ENGINES": "2",  # Use dual DMA engines for parallel data transfer
+        }
+        print(f"Loading FP16-INT8 quantized model for {device_name}")
+    else:  # CPU
+        model_path = "./intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml"
+        device_config = {}
+        print(f"Loading FP16 model for {device_name}")
+    
+    model = core.read_model(model_path)
+    compiled_model = core.compile_model(model, device_name=device_name, config=device_config)
+    
+    input_layer = compiled_model.input(0)
+    output_layer = compiled_model.output(0)
+    
+    # Create inference request
+    infer_request = compiled_model.create_infer_request()
+    
+    print(f"Model compiled for {device_name} device")
+    return compiled_model, input_layer, output_layer, infer_request
+
+# Parse command line arguments
+args = parse_arguments()
+device = args.device
+
+# Setup model based on selected device
+compiled_model, input_layer, output_layer, infer_request = setup_model(device)
 # Get the expected input resolution for preprocessing
 _, _, h, w = input_layer.shape
 
@@ -38,15 +72,18 @@ while cap.isOpened():  # checkin if the video can be accessed
         print("Failed to grab frame")
         break
 
-    # Preprocess frame for the OpenVINO model
-    resized = cv2.resize(frame, (w, h))
-    input_image = resized.transpose((2, 0, 1))[np.newaxis, :]
+    # Preprocess frame for the OpenVINO model with NPU-optimized preprocessing
+    resized = cv2.resize(frame, (w, h), interpolation=cv2.INTER_LINEAR)
+    # Normalize to [0, 1] range for better NPU performance
+    normalized = resized.astype(np.float32) / 255.0
+    input_image = normalized.transpose((2, 0, 1))[np.newaxis, :]
 
-    # Run inference on the Intel NPU and report latency
+    # Run inference using async request for better performance
     start_time = time.perf_counter()
-    detections = compiled_model([input_image])[output_layer]
+    infer_request.infer([input_image])
+    detections = infer_request.get_output_tensor(0).data
     inference_ms = (time.perf_counter() - start_time) * 1000
-    print(f"Inference time: {inference_ms:.2f} ms")
+    print(f"{device} Inference time: {inference_ms:.2f} ms")
 
     # Draw a blue square around each detected face
     for detection in detections[0][0]:
@@ -61,15 +98,15 @@ while cap.isOpened():  # checkin if the video can be accessed
     # Save the frame as a JPEG image
     cv2.imwrite("captured_image.jpg", frame)
 
+    # Add inference time and processor info at top right in red
+    font = cv2.FONT_HERSHEY_TRIPLEX  # Closest to Times New Roman in OpenCV
+    inference_text = f"Inference time: {inference_ms:.1f}ms {device}"
+    text_size = cv2.getTextSize(inference_text, font, 0.7, 1)[0]
+    text_x = frame.shape[1] - text_size[0] - 10  # 10 pixels from right edge
+    text_y = 30  # 30 pixels from top
+    frame = cv2.putText(frame, inference_text, (text_x, text_y), font, 0.7, (0, 0, 255), 1, cv2.LINE_AA)
+    
     out.write(frame)  # write the file
-
-    datetime_text = str(datetime.datetime.now())
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    frame_size_text = "Width:" + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) + " " + "Height:" + str(
-        cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    )
-    frame = cv2.putText(frame, frame_size_text, (10, 50), font, 1, (0, 255, 255), 1, cv2.LINE_AA)
-    frame = cv2.putText(frame, datetime_text, (10, 75), font, 1, (0, 255, 255), 1, cv2.LINE_AA)
     cv2.imshow("frame", frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):

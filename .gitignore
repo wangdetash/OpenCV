@@ -184,3 +184,36 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,opencv
 
+# Project-specific ignores - only commit .py files
+# Ignore all files except Python source files
+*
+!*.py
+!.gitignore
+!README.md
+
+# OpenVINO model files and cache
+intel/
+cache/
+*.bin
+*.xml
+
+# Generated output files
+captured_image.jpg
+output.avi
+*.jpg
+*.jpeg
+*.png
+*.avi
+*.mp4
+*.mov
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
