@@ -190,6 +190,7 @@ pyrightconfig.json
 !*.py
 !.gitignore
 !README.md
+!requirements.txt
 
 # OpenVINO model files and cache
 intel/
